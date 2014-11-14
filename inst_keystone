@@ -1,3 +1,4 @@
 git clone http://github.com/openstack/keystone.git
 cd keystone
 git checkout stable/icehouse
+python setup.py install
