@@ -1,4 +1,12 @@
+rabbitmqctl change_password guest $ADMIN_TOKEN
+
 git clone http://github.com/openstack/keystone.git
 cd keystone
 git checkout stable/icehouse
+pip install -r requirements.txt
 python setup.py install
+
+cp etc/keystone.conf.sample ./keystone.conf
+sed -i 's/#connection\=<None>/connection\=mysql:\/\/keystone\:'$ADMIN_TOKEN'@127.0.0.1\/keystone/g' keystone.conf
+sed -i 's/#admin_token\=ADMIN/admin_token\='$ADMIN_TOKEN'/g' keystone.conf
+sed -i 's/#log_dir\=<None>/log_dir\=\/var\/log\/keystone/g' keystone.conf
