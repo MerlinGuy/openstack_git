@@ -1,0 +1,7 @@
+export DESIGNATE_IP=192.168.1.114
+export KEYSTONE_IP=192.168.1.113
+export ADMIN_TOKEN=<password>
+export OS_USERNAME=admin
+export OS_TENANT_NAME=admin
+export OS_PASSWORD=<password>
+export OS_AUTH_URL=http://$KEYSTONE_IP:5000/v2.0
