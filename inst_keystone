@@ -1,3 +1,5 @@
+
+source keystonerc
 rabbitmqctl change_password guest $ADMIN_TOKEN
 
 git clone http://github.com/openstack/keystone.git
@@ -10,3 +12,37 @@ cp etc/keystone.conf.sample ./keystone.conf
 sed -i 's/#connection\=<None>/connection\=mysql:\/\/keystone\:'$ADMIN_TOKEN'@127.0.0.1\/keystone/g' keystone.conf
 sed -i 's/#admin_token\=ADMIN/admin_token\='$ADMIN_TOKEN'/g' keystone.conf
 sed -i 's/#log_dir\=<None>/log_dir\=\/var\/log\/keystone/g' keystone.conf
+
+# Add keystone user and create the owned directories
+sudo adduser --disabled-password --gecos "" keystone
+mkdir /etc/keystone
+mkdir /var/log/keystone
+chown -R keystone:keystone /etc/keystone
+chown -R keystone:keystone /var/log/keystone
+
+cp keystone.conf /etc/keystone/keystone.conf
+
+(crontab -l -u keystone 2>&1 | grep -q token_flush) || \
+echo '@hourly /usr/bin/keystone-manage token_flush >/var/log/keystone/keystone-tokenflush.log 2>&1' >> /var/spool/cron/crontabs/keystone
+
+rm /var/lib/keystone/keystone.db
+
+# The database setup
+MCMD="CREATE DATABASE keystone;"
+mysql -u root -p$ADMIN_TOKEN -e "$MCMD"
+
+MCMD="GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY '$ADMIN_TOKEN';"
+mysql -u root -p$ADMIN_TOKEN -e "$MCMD"
+
+MCMD="GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY '$ADMIN_TOKEN';"
+mysql -u root -p$ADMIN_TOKEN -e "$MCMD"
+
+su -s /bin/sh -c "keystone-manage db_sync" keystone
+
+chown -R keystone:keystone /var/log/keystone
+
+cp usr/bin/keystone-all /usr/bin/.
+cp usr/bin/keystone /usr/bin/.
+cp usr/bin/keystone-manage /usr/bin/.
+
+
