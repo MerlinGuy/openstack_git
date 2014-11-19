@@ -1,3 +1,4 @@
+#!/bin/bash
 
 source keystonerc
 rabbitmqctl change_password guest $ADMIN_TOKEN
@@ -14,9 +15,20 @@ sed -i 's/#admin_token\=ADMIN/admin_token\='$ADMIN_TOKEN'/g' keystone.conf
 sed -i 's/#log_dir\=<None>/log_dir\=\/var\/log\/keystone/g' keystone.conf
 
 # Add keystone user and create the owned directories
-sudo adduser --disabled-password --gecos "" keystone
-mkdir /etc/keystone
-mkdir /var/log/keystone
+if ! id -u keystone >/dev/null 2>&1; then
+    sudo adduser --disabled-password --gecos "" keystone
+fi
+
+DIR=/etc/keystone
+if [ ! -d $DIR ]; then
+    mkdir $DIR
+fi
+
+DIR=/var/log/keystone
+if [ ! -d $DIR ]; then
+    mkdir $DIR
+fi
+
 chown -R keystone:keystone /etc/keystone
 chown -R keystone:keystone /var/log/keystone
 
@@ -25,7 +37,10 @@ cp keystone.conf /etc/keystone/keystone.conf
 (crontab -l -u keystone 2>&1 | grep -q token_flush) || \
 echo '@hourly /usr/bin/keystone-manage token_flush >/var/log/keystone/keystone-tokenflush.log 2>&1' >> /var/spool/cron/crontabs/keystone
 
-rm /var/lib/keystone/keystone.db
+KDB=/var/lib/keystone/keystone.db
+if [ -f $KDB ]; then
+    rm -f $KDB
+fi
 
 # The database setup
 MCMD="CREATE DATABASE keystone;"
@@ -39,10 +54,11 @@ mysql -u root -p$ADMIN_TOKEN -e "$MCMD"
 
 su -s /bin/sh -c "keystone-manage db_sync" keystone
 
-chown -R keystone:keystone /var/log/keystone
+OFILE=keystone-all
+OUTPUT="$(find build -name $OFILE)"
+cp $OUTPUT /usr/bin/$OUTFILE
 
-cp usr/bin/keystone-all /usr/bin/.
-cp usr/bin/keystone /usr/bin/.
-cp usr/bin/keystone-manage /usr/bin/.
-
+OFILE=keystone-manage
+OUTPUT="$(find build -name $OFILE)"
+cp $OUTPUT /usr/bin/$OUTFILE
 
